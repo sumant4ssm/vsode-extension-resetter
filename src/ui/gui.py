@@ -10,6 +10,7 @@ from tkinter import ttk, messagebox, scrolledtext
 import threading
 import queue
 import logging
+from pathlib import Path
 
 from ..core.utils import (
     get_platform,
@@ -63,8 +64,8 @@ class VSCodeResetterGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("VSCode Extension Resetter")
-        self.root.geometry("900x700")
-        self.root.minsize(900, 700)
+        self.root.geometry("950x750")
+        self.root.minsize(950, 750)
 
         # Set application icon if available
         try:
@@ -108,9 +109,13 @@ class VSCodeResetterGUI:
         desc_label = ttk.Label(header_frame, text="Reset extension tracking data completely, even after uninstallation")
         desc_label.pack(anchor=tk.W)
 
-        # Create the notebook (tabs)
-        self.notebook = ttk.Notebook(self.main_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True, pady=5)
+        # Create a PanedWindow to allow resizing between tabs and log
+        self.paned_window = ttk.PanedWindow(self.main_frame, orient=tk.VERTICAL)
+        self.paned_window.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        # Create the notebook (tabs) in the top pane
+        self.notebook = ttk.Notebook(self.paned_window)
+        self.paned_window.add(self.notebook, weight=3)
 
         # Create tabs
         self.info_tab = ttk.Frame(self.notebook, padding=10)
@@ -125,9 +130,9 @@ class VSCodeResetterGUI:
         self.notebook.add(self.backup_restore_tab, text="Backup/Restore")
         self.notebook.add(self.clean_all_tab, text="Clean All")
 
-        # Create the log frame
-        self.log_frame = ttk.LabelFrame(self.main_frame, text="Log")
-        self.log_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        # Create the log frame in the bottom pane
+        self.log_frame = ttk.LabelFrame(self.paned_window, text="Log")
+        self.paned_window.add(self.log_frame, weight=1)  # Weight of 1 ensures it gets at least some space
 
         # Create log controls frame
         log_controls = ttk.Frame(self.log_frame)
@@ -137,10 +142,20 @@ class VSCodeResetterGUI:
         clear_logs_button = ttk.Button(log_controls, text="Clear Logs", command=self.clear_logs)
         clear_logs_button.pack(side=tk.RIGHT)
 
-        # Create the log text widget
-        self.log_text = scrolledtext.ScrolledText(self.log_frame, height=8, font=("Consolas", 9))
+        # Create the log text widget with a fixed minimum height
+        self.log_text = scrolledtext.ScrolledText(self.log_frame, height=6, font=("Consolas", 9))
         self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.log_text.config(background="#f8f8f8", foreground="#333333")
+
+        # Add some initial text to the log
+        logger.info("VSCode Extension Resetter started")
+        logger.info(f"Platform detected: {get_platform().capitalize()}")
+
+        # Set the initial position of the paned window divider (70% for tabs, 30% for logs)
+        self.root.update_idletasks()  # Make sure the window is drawn
+        total_height = self.paned_window.winfo_height()
+        if total_height > 0:
+            self.paned_window.sashpos(0, int(total_height * 0.7))
 
         # Create status bar
         status_frame = ttk.Frame(self.main_frame)
@@ -149,7 +164,7 @@ class VSCodeResetterGUI:
         status_label = ttk.Label(status_frame, text=f"Platform: {get_platform().capitalize()}")
         status_label.pack(side=tk.LEFT)
 
-        version_label = ttk.Label(status_frame, text="v0.1.0")
+        version_label = ttk.Label(status_frame, text="v0.2.0")
         version_label.pack(side=tk.RIGHT)
 
         # Initialize tabs
@@ -475,6 +490,32 @@ class VSCodeResetterGUI:
         )
         info_text.pack(fill=tk.X)
 
+        # Create the backup location frame
+        location_frame = ttk.LabelFrame(backup_restore_frame, text="Backup Location")
+        location_frame.pack(fill=tk.X, pady=5)
+
+        # Get default backup location
+        from ..core.utils import get_backup_dir
+        default_location = str(get_backup_dir().parent)
+
+        # Create location display
+        location_frame_inner = ttk.Frame(location_frame)
+        location_frame_inner.pack(fill=tk.X, pady=5, padx=5)
+
+        location_label = ttk.Label(location_frame_inner, text="Current location:")
+        location_label.pack(side=tk.LEFT, padx=(0, 5))
+
+        self.backup_location_var = tk.StringVar(value=default_location)
+        location_entry = ttk.Entry(location_frame_inner, textvariable=self.backup_location_var, width=50)
+        location_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+
+        browse_button = ttk.Button(
+            location_frame_inner,
+            text="Browse...",
+            command=self.browse_backup_location
+        )
+        browse_button.pack(side=tk.LEFT, padx=5)
+
         # Create the backup frame
         backup_frame = ttk.LabelFrame(backup_restore_frame, text="Create Backup")
         backup_frame.pack(fill=tk.X, pady=5)
@@ -500,12 +541,15 @@ class VSCodeResetterGUI:
         restore_frame = ttk.LabelFrame(backup_restore_frame, text="Restore from Backup")
         restore_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # Create the backups listbox
-        self.backups_listbox = tk.Listbox(restore_frame)
+        # Create the backups listbox with a frame to hold it and the scrollbar
+        listbox_frame = ttk.Frame(restore_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        self.backups_listbox = tk.Listbox(listbox_frame)
         self.backups_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Create the scrollbar
-        scrollbar = ttk.Scrollbar(restore_frame, orient=tk.VERTICAL, command=self.backups_listbox.yview)
+        scrollbar = ttk.Scrollbar(listbox_frame, orient=tk.VERTICAL, command=self.backups_listbox.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.backups_listbox.config(yscrollcommand=scrollbar.set)
 
@@ -529,8 +573,70 @@ class VSCodeResetterGUI:
         )
         restore_button.pack(side=tk.LEFT, padx=5)
 
+        # Create the browse for backup button
+        browse_restore_button = ttk.Button(
+            buttons_frame,
+            text="Browse for Backup...",
+            command=self.browse_for_backup
+        )
+        browse_restore_button.pack(side=tk.LEFT, padx=5)
+
         # Initial refresh
         self.refresh_backups()
+
+    def browse_backup_location(self):
+        """
+        Open a directory browser to select a backup location.
+        """
+        from tkinter import filedialog
+
+        current_dir = self.backup_location_var.get()
+        new_dir = filedialog.askdirectory(initialdir=current_dir, title="Select Backup Location")
+
+        if new_dir:  # User selected a directory
+            self.backup_location_var.set(new_dir)
+            from ..core.utils import set_backup_dir
+            set_backup_dir(new_dir)
+            self.refresh_backups()
+            logger.info(f"Backup location changed to: {new_dir}")
+
+    def browse_for_backup(self):
+        """
+        Open a directory browser to select a backup to restore from.
+        """
+        from tkinter import filedialog
+
+        current_dir = self.backup_location_var.get()
+        backup_dir = filedialog.askdirectory(initialdir=current_dir, title="Select Backup Directory")
+
+        if backup_dir:  # User selected a directory
+            # Check if this is a valid backup directory
+            backup_path = Path(backup_dir)
+            if (backup_path.name == "vscode_resetter_backups" or
+                backup_path.parent.name == "vscode_resetter_backups" or
+                backup_path.name == "resetter_backups" or
+                "backup_" in backup_path.name):
+
+                # If user selected the parent directory, use it
+                if backup_path.name == "vscode_resetter_backups" or backup_path.name == "resetter_backups":
+                    self.backup_location_var.set(str(backup_path.parent))
+                    from ..core.utils import set_backup_dir
+                    set_backup_dir(str(backup_path.parent))
+                # If user selected a specific backup, use its parent
+                elif "backup_" in backup_path.name:
+                    self.backup_location_var.set(str(backup_path.parent))
+                    from ..core.utils import set_backup_dir
+                    set_backup_dir(str(backup_path.parent.parent))
+                else:
+                    self.backup_location_var.set(str(backup_path))
+                    from ..core.utils import set_backup_dir
+                    set_backup_dir(str(backup_path))
+
+                self.refresh_backups()
+                logger.info(f"Browsing backups from: {backup_dir}")
+            else:
+                messagebox.showwarning("Invalid Backup Directory",
+                                      "The selected directory does not appear to be a valid backup location.")
 
     def refresh_backups(self):
         """
@@ -538,26 +644,38 @@ class VSCodeResetterGUI:
         """
         self.backups_listbox.delete(0, tk.END)
 
-        backups = list_backups()
-        for backup_id in backups:
-            self.backups_listbox.insert(tk.END, backup_id)
+        custom_dir = self.backup_location_var.get()
+        backups = list_backups(custom_dir)
+
+        if not backups:
+            self.backups_listbox.insert(tk.END, "No backups found")
+            self.backups_listbox.config(state=tk.DISABLED)
+        else:
+            self.backups_listbox.config(state=tk.NORMAL)
+            for backup_id in backups:
+                self.backups_listbox.insert(tk.END, backup_id)
 
     def create_backup(self):
         """
         Create a backup.
         """
         include_extensions = self.include_extensions_var.get()
+        custom_dir = self.backup_location_var.get()
 
         def task():
-            from ..core.utils import create_backup_id
+            from ..core.utils import create_backup_id, set_backup_dir
+
+            # Set the backup directory
+            set_backup_dir(custom_dir)
 
             backup_id = create_backup_id()
 
             # Backup machine ID
-            machine_id_path = get_current_machine_id()
-            if machine_id_path:
+            from ..core.utils import get_machine_id_path
+            machine_id_path = get_machine_id_path()
+            if machine_id_path.exists():
                 from ..core.utils import backup_file
-                backup_file(machine_id_path, backup_id)
+                backup_file(machine_id_path, backup_id, custom_dir)
 
             # Backup global storage
             backup_global_storage(backup_id)
@@ -571,7 +689,8 @@ class VSCodeResetterGUI:
                 for ext_id in extension_data:
                     backup_extension_data(ext_id, backup_id)
 
-            messagebox.showinfo("Success", f"Backup created with ID: {backup_id}")
+            backup_path = Path(custom_dir) / "vscode_resetter_backups" / backup_id
+            messagebox.showinfo("Success", f"Backup created with ID: {backup_id}\nLocation: {backup_path}")
             self.refresh_backups()
             self.refresh_info()
 
@@ -587,9 +706,17 @@ class VSCodeResetterGUI:
             return
 
         backup_id = self.backups_listbox.get(selected_indices[0])
+        if backup_id == "No backups found":
+            return
+
+        custom_dir = self.backup_location_var.get()
 
         if messagebox.askyesno("Confirm", f"Restore from backup {backup_id}?"):
             def task():
+                # Set the backup directory for restoration
+                from ..core.utils import set_backup_dir
+                set_backup_dir(custom_dir)
+
                 # Restore machine ID
                 restore_machine_id(backup_id)
 
@@ -658,24 +785,34 @@ class VSCodeResetterGUI:
         Clean all VSCode tracking data.
         """
         backup = self.clean_backup_var.get()
+        custom_dir = self.backup_location_var.get()
 
         if messagebox.askyesno("Confirm", "Are you sure you want to clean all VSCode tracking data?"):
             def task():
                 if backup:
-                    from ..core.utils import create_backup_id
+                    from ..core.utils import create_backup_id, set_backup_dir
+
+                    # Set the backup directory
+                    set_backup_dir(custom_dir)
+
                     backup_id = create_backup_id()
 
                     # Backup machine ID
-                    machine_id_path = get_current_machine_id()
-                    if machine_id_path:
+                    from ..core.utils import get_machine_id_path
+                    machine_id_path = get_machine_id_path()
+                    if machine_id_path.exists():
                         from ..core.utils import backup_file
-                        backup_file(machine_id_path, backup_id)
+                        backup_file(machine_id_path, backup_id, custom_dir)
 
                     # Backup global storage
                     backup_global_storage(backup_id)
 
                     # Backup state database
                     backup_state_db(backup_id)
+
+                    # Log backup location
+                    backup_path = Path(custom_dir) / "vscode_resetter_backups" / backup_id
+                    logger.info(f"Created backup before cleaning: {backup_path}")
 
                 # Reset machine ID
                 reset_machine_id(backup=False)  # Already backed up

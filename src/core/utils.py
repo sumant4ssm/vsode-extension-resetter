@@ -82,6 +82,30 @@ def get_extensions_path():
     """
     return get_vscode_path() / "User" / "globalStorage"
 
+# Default backup location
+DEFAULT_BACKUP_DIR = None
+
+def set_backup_dir(path=None):
+    """
+    Set the directory for storing backups.
+
+    Args:
+        path (str or Path, optional): Custom path for backups. If None, use default.
+
+    Returns:
+        Path: Path to the backup directory
+    """
+    global DEFAULT_BACKUP_DIR
+
+    if path:
+        backup_dir = Path(path) / "vscode_resetter_backups"
+    else:
+        backup_dir = get_vscode_path() / "resetter_backups"
+
+    backup_dir.mkdir(exist_ok=True, parents=True)
+    DEFAULT_BACKUP_DIR = backup_dir
+    return backup_dir
+
 def get_backup_dir():
     """
     Get the directory for storing backups.
@@ -89,9 +113,12 @@ def get_backup_dir():
     Returns:
         Path: Path to the backup directory
     """
-    backup_dir = get_vscode_path() / "resetter_backups"
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    return backup_dir
+    global DEFAULT_BACKUP_DIR
+
+    if DEFAULT_BACKUP_DIR is None:
+        return set_backup_dir()
+
+    return DEFAULT_BACKUP_DIR
 
 def create_backup_id():
     """
@@ -103,13 +130,14 @@ def create_backup_id():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"backup_{timestamp}"
 
-def backup_file(file_path, backup_id=None):
+def backup_file(file_path, backup_id=None, custom_dir=None):
     """
     Create a backup of a file.
 
     Args:
         file_path (Path): Path to the file to backup
         backup_id (str, optional): Backup ID. If None, a new ID will be created.
+        custom_dir (str or Path, optional): Custom backup directory. If None, use default.
 
     Returns:
         tuple: (backup_id, backup_path) or (None, None) if backup failed
@@ -121,11 +149,22 @@ def backup_file(file_path, backup_id=None):
     if backup_id is None:
         backup_id = create_backup_id()
 
-    backup_dir = get_backup_dir() / backup_id
+    # Use custom directory if provided
+    if custom_dir:
+        backup_base_dir = set_backup_dir(custom_dir)
+    else:
+        backup_base_dir = get_backup_dir()
+
+    backup_dir = backup_base_dir / backup_id
     backup_dir.mkdir(exist_ok=True, parents=True)
 
     # Create relative path structure in backup
-    rel_path = file_path.relative_to(get_vscode_path()) if file_path.is_relative_to(get_vscode_path()) else Path(file_path.name)
+    try:
+        rel_path = file_path.relative_to(get_vscode_path()) if file_path.is_relative_to(get_vscode_path()) else Path(file_path.name)
+    except ValueError:
+        # If the file is not relative to VSCode path, just use the filename
+        rel_path = Path(file_path.name)
+
     backup_path = backup_dir / rel_path
 
     # Create parent directories if they don't exist
@@ -165,14 +204,21 @@ def restore_file(backup_path, original_path):
         logger.error(f"Failed to restore {original_path}: {e}")
         return False
 
-def list_backups():
+def list_backups(custom_dir=None):
     """
     List all available backups.
+
+    Args:
+        custom_dir (str or Path, optional): Custom backup directory. If None, use default.
 
     Returns:
         list: List of backup IDs
     """
-    backup_dir = get_backup_dir()
+    if custom_dir:
+        backup_dir = Path(custom_dir) / "vscode_resetter_backups"
+    else:
+        backup_dir = get_backup_dir()
+
     if not backup_dir.exists():
         return []
 
