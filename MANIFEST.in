@@ -1,0 +1,7 @@
+include LICENSE
+include README.md
+include requirements.txt
+include icon.py
+include run_cli.py
+include run_gui.py
+recursive-include docs *
