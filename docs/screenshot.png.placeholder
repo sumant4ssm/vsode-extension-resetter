@@ -1,8 +1,0 @@
-This is a placeholder for the screenshot.png file.
-You should replace this with an actual screenshot of the application.
-
-To create a screenshot:
-1. Run the application using `python run_gui.py`
-2. Take a screenshot of the application window
-3. Save it as "screenshot.png" in this directory
-4. Delete this placeholder file
