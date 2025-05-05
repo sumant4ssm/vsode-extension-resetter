@@ -51,8 +51,8 @@ Feature suggestions are welcome! Please create an issue with:
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/vscode-extension-resetter.git
-   cd vscode-extension-resetter
+   git clone https://github.com/sumant4ssm/vsode-extension-resetter.git
+   cd vsode-extension-resetter
    ```
 
 2. Install dependencies

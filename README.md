@@ -17,8 +17,8 @@ A tool to completely remove extension tracking in Visual Studio Code, even after
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vscode-extension-resetter.git
-cd vscode-extension-resetter
+git clone https://github.com/sumant4ssm/vsode-extension-resetter.git
+cd vsode-extension-resetter
 
 # Install dependencies
 pip install -r requirements.txt
