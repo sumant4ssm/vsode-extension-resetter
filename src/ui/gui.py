@@ -129,6 +129,14 @@ class VSCodeResetterGUI:
         self.log_frame = ttk.LabelFrame(self.main_frame, text="Log")
         self.log_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
+        # Create log controls frame
+        log_controls = ttk.Frame(self.log_frame)
+        log_controls.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=2)
+
+        # Add clear logs button
+        clear_logs_button = ttk.Button(log_controls, text="Clear Logs", command=self.clear_logs)
+        clear_logs_button.pack(side=tk.RIGHT)
+
         # Create the log text widget
         self.log_text = scrolledtext.ScrolledText(self.log_frame, height=8, font=("Consolas", 9))
         self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -153,6 +161,13 @@ class VSCodeResetterGUI:
 
         # Start the log consumer
         self.log_consumer()
+
+    def clear_logs(self):
+        """
+        Clear the log text widget.
+        """
+        self.log_text.delete(1.0, tk.END)
+        logger.info("Logs cleared")
 
     def log_consumer(self):
         """
@@ -218,6 +233,23 @@ class VSCodeResetterGUI:
         machine_id_frame = ttk.Frame(self.machine_id_tab, padding=10)
         machine_id_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Create info section
+        info_frame = ttk.LabelFrame(machine_id_frame, text="About Machine ID")
+        info_frame.pack(fill=tk.X, pady=(0, 10))
+
+        info_text = ttk.Label(
+            info_frame,
+            text="The Machine ID is a unique identifier used by VSCode to track installations.\n"
+                 "Resetting it will make VSCode generate a new ID, which can help with:\n"
+                 "• Resetting extension trials\n"
+                 "• Preventing extension tracking\n"
+                 "• Resolving licensing issues with some extensions",
+            wraplength=600,
+            justify=tk.LEFT,
+            padding=10
+        )
+        info_text.pack(fill=tk.X)
+
         # Create the current machine ID label
         current_id_label = ttk.Label(machine_id_frame, text="Current Machine ID:")
         current_id_label.pack(anchor=tk.W, pady=5)
@@ -228,11 +260,19 @@ class VSCodeResetterGUI:
 
         # Create the backup checkbox
         self.backup_var = tk.BooleanVar(value=True)
-        backup_check = ttk.Checkbutton(machine_id_frame, text="Create backup before resetting", variable=self.backup_var)
+        backup_check = ttk.Checkbutton(
+            machine_id_frame,
+            text="Create backup before resetting (recommended)",
+            variable=self.backup_var
+        )
         backup_check.pack(anchor=tk.W, pady=5)
 
         # Create the reset button
-        reset_button = ttk.Button(machine_id_frame, text="Reset Machine ID", command=self.reset_machine_id)
+        reset_button = ttk.Button(
+            machine_id_frame,
+            text="Reset Machine ID",
+            command=self.reset_machine_id
+        )
         reset_button.pack(pady=5)
 
         # Initial refresh
@@ -271,6 +311,26 @@ class VSCodeResetterGUI:
         extensions_frame = ttk.Frame(self.extensions_tab, padding=10)
         extensions_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Create info section
+        info_frame = ttk.LabelFrame(extensions_frame, text="About Extension Data")
+        info_frame.pack(fill=tk.X, pady=(0, 10))
+
+        info_text = ttk.Label(
+            info_frame,
+            text="Extensions store data in VSCode's global storage, including:\n"
+                 "• License information and activation status\n"
+                 "• Usage telemetry and tracking data\n"
+                 "• User preferences and settings\n\n"
+                 "Resetting an extension will remove all its stored data, which can help with:\n"
+                 "• Resolving extension issues\n"
+                 "• Resetting trial periods\n"
+                 "• Removing tracking information",
+            wraplength=600,
+            justify=tk.LEFT,
+            padding=10
+        )
+        info_text.pack(fill=tk.X)
+
         # Create the extensions list frame
         list_frame = ttk.LabelFrame(extensions_frame, text="Extensions with Data")
         list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
@@ -290,19 +350,35 @@ class VSCodeResetterGUI:
 
         # Create the backup checkbox
         self.ext_backup_var = tk.BooleanVar(value=True)
-        backup_check = ttk.Checkbutton(buttons_frame, text="Create backup before resetting", variable=self.ext_backup_var)
+        backup_check = ttk.Checkbutton(
+            buttons_frame,
+            text="Create backup before resetting (recommended)",
+            variable=self.ext_backup_var
+        )
         backup_check.pack(side=tk.LEFT, padx=5)
 
         # Create the refresh button
-        refresh_button = ttk.Button(buttons_frame, text="Refresh", command=self.refresh_extensions)
+        refresh_button = ttk.Button(
+            buttons_frame,
+            text="Refresh List",
+            command=self.refresh_extensions
+        )
         refresh_button.pack(side=tk.LEFT, padx=5)
 
         # Create the reset selected button
-        reset_selected_button = ttk.Button(buttons_frame, text="Reset Selected", command=self.reset_selected_extensions)
+        reset_selected_button = ttk.Button(
+            buttons_frame,
+            text="Reset Selected",
+            command=self.reset_selected_extensions
+        )
         reset_selected_button.pack(side=tk.LEFT, padx=5)
 
         # Create the reset all button
-        reset_all_button = ttk.Button(buttons_frame, text="Reset All", command=self.reset_all_extensions)
+        reset_all_button = ttk.Button(
+            buttons_frame,
+            text="Reset All Extensions",
+            command=self.reset_all_extensions
+        )
         reset_all_button.pack(side=tk.LEFT, padx=5)
 
         # Initial refresh
@@ -381,21 +457,47 @@ class VSCodeResetterGUI:
         backup_restore_frame = ttk.Frame(self.backup_restore_tab, padding=10)
         backup_restore_frame.pack(fill=tk.BOTH, expand=True)
 
+        # Create info section
+        info_frame = ttk.LabelFrame(backup_restore_frame, text="About Backups")
+        info_frame.pack(fill=tk.X, pady=(0, 10))
+
+        info_text = ttk.Label(
+            info_frame,
+            text="Backups save the current state of VSCode configuration, including:\n"
+                 "• Machine ID\n"
+                 "• Global storage data\n"
+                 "• State database\n"
+                 "• Extension data (optional)\n\n"
+                 "Creating backups before making changes allows you to restore VSCode to its previous state if needed.",
+            wraplength=600,
+            justify=tk.LEFT,
+            padding=10
+        )
+        info_text.pack(fill=tk.X)
+
         # Create the backup frame
-        backup_frame = ttk.LabelFrame(backup_restore_frame, text="Backup")
+        backup_frame = ttk.LabelFrame(backup_restore_frame, text="Create Backup")
         backup_frame.pack(fill=tk.X, pady=5)
 
         # Create the include extensions checkbox
         self.include_extensions_var = tk.BooleanVar(value=True)
-        include_extensions_check = ttk.Checkbutton(backup_frame, text="Include extension data", variable=self.include_extensions_var)
+        include_extensions_check = ttk.Checkbutton(
+            backup_frame,
+            text="Include extension data (recommended, but increases backup size)",
+            variable=self.include_extensions_var
+        )
         include_extensions_check.pack(anchor=tk.W, pady=5)
 
         # Create the backup button
-        backup_button = ttk.Button(backup_frame, text="Create Backup", command=self.create_backup)
+        backup_button = ttk.Button(
+            backup_frame,
+            text="Create New Backup",
+            command=self.create_backup
+        )
         backup_button.pack(pady=5)
 
         # Create the restore frame
-        restore_frame = ttk.LabelFrame(backup_restore_frame, text="Restore")
+        restore_frame = ttk.LabelFrame(backup_restore_frame, text="Restore from Backup")
         restore_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
         # Create the backups listbox
@@ -412,11 +514,19 @@ class VSCodeResetterGUI:
         buttons_frame.pack(fill=tk.X, pady=5)
 
         # Create the refresh button
-        refresh_button = ttk.Button(buttons_frame, text="Refresh", command=self.refresh_backups)
+        refresh_button = ttk.Button(
+            buttons_frame,
+            text="Refresh List",
+            command=self.refresh_backups
+        )
         refresh_button.pack(side=tk.LEFT, padx=5)
 
         # Create the restore button
-        restore_button = ttk.Button(buttons_frame, text="Restore", command=self.restore_backup)
+        restore_button = ttk.Button(
+            buttons_frame,
+            text="Restore Selected Backup",
+            command=self.restore_backup
+        )
         restore_button.pack(side=tk.LEFT, padx=5)
 
         # Initial refresh
