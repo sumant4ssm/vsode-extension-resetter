@@ -128,3 +128,15 @@ virtualenv/
 *.sublime-workspace
 .vs/
 *.code-workspace
+
+# Documentation - keep only README.md
+docs/
+*.md
+!README.md
+!CONTRIBUTING.md
+!LICENSE.md
+MANIFEST.in
+*.spec
+.github/
+wiki.yml
+build.yml
