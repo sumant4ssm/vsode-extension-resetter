@@ -2,7 +2,7 @@
 
 A tool to completely remove extension tracking in Visual Studio Code, even after uninstallation.
 
-![VSCode Extension Resetter](docs/screenshot.png)
+![VSCode Extension Resetter](screenshot.png)
 
 ## Features
 
